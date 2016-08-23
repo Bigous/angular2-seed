@@ -1,7 +1,10 @@
 import * as gulp from 'gulp';
+import * as util from 'gulp-util';
 import * as runSequence from 'run-sequence';
-import {loadTasks} from './tools/utils';
-import {SEED_TASKS_DIR, PROJECT_TASKS_DIR} from './tools/config';
+
+import { PROJECT_TASKS_DIR, SEED_TASKS_DIR } from './tools/config';
+import { loadTasks } from './tools/utils';
+
 
 loadTasks(SEED_TASKS_DIR);
 loadTasks(PROJECT_TASKS_DIR);
@@ -10,9 +13,9 @@ loadTasks(PROJECT_TASKS_DIR);
 // --------------
 // Build dev.
 gulp.task('build.dev', (done: any) =>
-  runSequence('clean.dev',
-              'tslint',
-              'css-lint',
+  runSequence(//'clean.dev',
+//              'tslint',
+//              'css-lint',
               'build.assets.dev',
               'build.html_css',
               'build.js.dev',
@@ -54,18 +57,21 @@ gulp.task('build.prod', (done: any) =>
 // --------------
 // Build test.
 gulp.task('build.test', (done: any) =>
-  runSequence('clean.dev',
+  runSequence('clean.once',
               'tslint',
               'build.assets.dev',
+              'build.html_css',
+              'build.js.dev',
               'build.js.test',
               'build.index.dev',
               done));
 
 // --------------
 // Build test watch.
-gulp.task('build.test.watch', (done: any) =>
+gulp.task('test.watch', (done: any) =>
   runSequence('build.test',
               'watch.test',
+              'karma.watch',
               done));
 
 // --------------
@@ -77,10 +83,10 @@ gulp.task('build.tools', (done: any) =>
 
 // --------------
 // Docs
-gulp.task('docs', (done: any) =>
-  runSequence('build.docs',
-              'serve.docs',
-              done));
+// gulp.task('docs', (done: any) =>
+//   runSequence('build.docs',
+//               'serve.docs',
+//               done));
 
 // --------------
 // Serve dev
@@ -98,9 +104,32 @@ gulp.task('serve.e2e', (done: any) =>
               'watch.e2e',
               done));
 
+
+// --------------
+// Serve prod
+gulp.task('serve.prod', (done: any) =>
+  runSequence('build.prod',
+              'server.prod',
+              done));
+
+
 // --------------
 // Test.
 gulp.task('test', (done: any) =>
   runSequence('build.test',
-              'karma.start',
+              'karma.run',
               done));
+
+// --------------
+// Clean dev/coverage that will only run once
+// this prevents karma watchers from being broken when directories are deleted
+let firstRun = true;
+gulp.task('clean.once', (done: any) => {
+  if (firstRun) {
+    firstRun = false;
+    runSequence('clean.dev', 'clean.coverage', done);
+  } else {
+    util.log('Skipping clean on rebuild');
+    done();
+  }
+})
